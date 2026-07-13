@@ -20,14 +20,16 @@ RULES (check in order, do the FIRST that matches):
 1. If hasBall=True AND distOppGoal < 35 → SHOOT aim_location="BL", power=0.9
 2. If hasBall=True AND forward player 4 is ahead and closer to goal → PASS type THROUGH to player 4
 3. If hasBall=True AND midfield partner player 2 is open → PASS type GROUND to player 2
-4. If hasBall=True → MOVE_TO toward opponent goal (advance x by 12), sprint=true
-5. If teammate has ball AND ball in opponent half → MOVE_TO x=opp_goal*0.45, y=8, sprint=false
-6. If teammate has ball AND ball in our half → MOVE_TO x=5, y=5, sprint=true
+4. If hasBall=True → MOVE_TO 12 units closer to opponent goal from current position, sprint=true
+5. If teammate has ball AND ball in opponent half → MOVE_TO 10 units behind the forward (between me and opponent goal), y=8, sprint=false
+6. If teammate has ball AND ball in our half → MOVE_TO 5 units ahead of midfield toward opponent goal, y=5, sprint=true
 7. If opponent has ball AND distBall < 12 → SLIDE_TACKLE target=ball carrier, sprint=true, distance=5
 8. If opponent has ball AND distBall < 20 → PRESS_BALL intensity 0.9, duration 2
 9. If opponent has ball → INTERCEPT aggressive=true, duration 2
 
 KEY: You are an ATTACKING midfielder in a 1-2-1. Push forward to support the lone striker (player 4). SHOOT from distance. Press hard when defending. Your midfield partner is player 2 — recycle possession through them.
+
+IMPORTANT: All target_x and target_y in parameters MUST be actual numbers (like 25, -10, 8). NEVER output expressions like 55*0.45 — always compute the final number based on the game state you received.
 
 STAMINA: Use sprint=true ONLY in rules 4 and 6. All other MOVE_TO use sprint=false.
 
