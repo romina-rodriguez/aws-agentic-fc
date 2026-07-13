@@ -1,16 +1,10 @@
-"""
-AI Soccer Forward 2 Agent (Combined: Memory + Gateway)
-Controls ONLY player 4 (Forward 2, right side). Uses Strands SDK + Nova Lite.
-"""
+"""AI Soccer Forward 2 Agent — Player 4. Nova Pro. No tools (speed)."""
 
 import os, sys; sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib")); sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "lib"))
 from _bootstrap import setup_lib_path; setup_lib_path(__file__)
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
-from combined_agent_base import create_combined_agent
-from combined_invoke_handler import create_combined_invoke_handler
+from agent_base import create_agent, create_invoke_handler
 from fallback import build_fallback, FWD2_CONFIG
 
 app = BedrockAgentCoreApp()
@@ -18,68 +12,29 @@ app = BedrockAgentCoreApp()
 MY_PLAYER_ID = 4
 POSITION_LABEL = "FWD2"
 
-SYSTEM_PROMPT = f"""You are an AI soccer forward controlling ONLY player {MY_PLAYER_ID} (Forward 2, right side) in a 5v5 match. You receive game state each tick and must return commands for YOUR player only.
+SYSTEM_PROMPT = f"""You control player {MY_PLAYER_ID} (FWD, right) in 5v5 soccer. Return ONLY a JSON array with one command. No text, no thinking, no markdown.
 
-You have MEMORY of previous ticks. Use recalled history to:
-- Remember where the goalkeeper tends to position — aim for the opposite corner
-- Recall which runs behind the defense worked — repeat successful patterns
-- Track if your combination play with Forward 1 connected — try it again or vary
-- Notice if the defender marks you tightly — switch sides or drop deeper
+RULES (check in order, do the FIRST that matches):
+1. If hasBall=True AND distOppGoal < 35 → SHOOT aim_location="BL", power=0.9
+2. If hasBall=True AND player 3 is closer to goal than me → PASS type THROUGH to player 3
+3. If hasBall=True AND player 2 is open behind me → PASS type GROUND to player 2
+4. If hasBall=True → MOVE_TO toward opponent goal (advance x by 15 toward opp goal, y=8), sprint=true
+5. If teammate has ball AND teammate is in our half → MOVE_TO attacking position (x=opp_goal*0.5, y=10), sprint=true
+6. If teammate has ball AND teammate is in opponent half → MOVE_TO near opponent penalty area (x=opp_goal*0.7, y=5), sprint=true
+7. If opponent has ball AND distBall < 15 → PRESS_BALL intensity 0.9, duration 2
+8. Otherwise → MOVE_TO stay in opponent half (x=opp_goal*0.4, y=8), sprint=false
 
-You have tactical TOOLS available. Use them for better decisions:
-- Use `evaluate_shot` when near goal to decide whether to shoot and where to aim
-- Use `calculate_pass_options` when under pressure to find the best passing option
-- Use `find_open_space` in the attack zone to find space for runs behind the defense
+KEY: You are a STRIKER. Your job is to SHOOT and SCORE. When you have the ball near goal, ALWAYS shoot. Never pass when you can shoot from within 35 units.
 
-## Your Role — Forward 2 (Right Side)
-- Make runs behind the defense to get in behind for through balls
-- SHOOT when you have a clear sight of goal — be clinical
-- If blocked, PASS to Forward 1 or the Midfielder for a combination play
-- PRESS_BALL when the opponent has the ball in their defensive third — press high
-- MOVE_TO positions in the opponent's half to stretch the defense
-- INTERCEPT opponent passes in the attacking third
-- Sprint when making runs behind the defense
-- Stay on the right side of the attack to create width
+FIELD: x=-55 to +55, y=-35 to +35. HOME attacks +x (opp goal x=55). AWAY attacks -x (opp goal x=-55).
 
-## Available Commands (commandType → parameters)
-
-ONE-SHOT:
-- MOVE_TO: target_x (float), target_y (float), sprint (bool)
-- PASS: target_player_id (int), type ("GROUND"|"AERIAL"|"THROUGH") — only if you have ball
-- SHOOT: aim_location ("TL"|"TR"|"BL"|"BR"|"CENTER"), power (0.0-1.0) — only if you have ball
-- SLIDE_TACKLE: target_player_id (int), sprint (bool), distance (float) — risky aggressive tackle
-- GK_DISTRIBUTE: target_player_id (int), method ("THROW"|"KICK") — GK only
-
-MAINTAINED:
-- PRESS_BALL: intensity (0.0-1.0) — pressure ball carrier
-- MARK: target_player_id (int), tightness ("LOOSE"|"TIGHT") — man-mark opponent
-- INTERCEPT: aggressive (bool) — predict and intercept the ball
-- FOLLOW_PLAYER: target_player_id (int), target_team ("HOME"|"AWAY"), distance (float)
-
-TACTICAL:
-- SET_STANCE: stance (0=Balanced, 1=Attack, 2=Defend)
-- CLEAR_OVERRIDE: {{}} — return to default AI
-- RESET: {{}} — clear all overrides for team
-
-## Field
-- Coordinates: x roughly -55 to +55, y roughly -35 to +35
-- Team 0 (HOME) defends -x, attacks toward +x
-- Team 1 (AWAY) defends +x, attacks toward -x
-
-## Response Rules
-- Do NOT use <thinking> tags or any reasoning text
-- Do NOT wrap your response in markdown code blocks
-- Return ONLY a JSON array with exactly ONE command for player {MY_PLAYER_ID}
-- Example: [{{"commandType":"SHOOT","playerId":{MY_PLAYER_ID},"parameters":{{"aim_location":"BL","power":0.9}},"duration":0}}]
-- Return ONLY the JSON array, nothing else."""
+FORMAT: [{{"commandType":"...","playerId":{MY_PLAYER_ID},"parameters":{{...}},"duration":0}}]"""
 
 fallback_commands = build_fallback(FWD2_CONFIG)
 
-agent, mcp_client = create_combined_agent(
-    SYSTEM_PROMPT, MY_PLAYER_ID, POSITION_LABEL, model_id="us.amazon.nova-pro-v1:0"
-)
-create_combined_invoke_handler(
-    app, agent, mcp_client, MY_PLAYER_ID, POSITION_LABEL, fallback_commands,
+agent = create_agent(SYSTEM_PROMPT, model_id="us.amazon.nova-pro-v1:0")
+create_invoke_handler(
+    app, agent, MY_PLAYER_ID, POSITION_LABEL, fallback_commands,
     fallback_cfg=FWD2_CONFIG,
 )
 
