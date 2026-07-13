@@ -21,7 +21,9 @@ RULES:
 
 FIELD: x=-55 to +55, y=-35 to +35. HOME defends -x, AWAY defends +x.
 
-FORMAT: [{{"commandType":"...","playerId":{MY_PLAYER_ID},"parameters":{{...}},"duration":0}}]"""
+FORMAT: [{{"commandType":"...","playerId":{MY_PLAYER_ID},"parameters":{{...}},"duration":0}}]
+
+RULE: target_x and target_y MUST be integers. NEVER output multiplication expressions like 55*0.4 or ball_y*0.3 — compute the value first."""
 
 fallback_commands = build_fallback(GK_CONFIG)
 
