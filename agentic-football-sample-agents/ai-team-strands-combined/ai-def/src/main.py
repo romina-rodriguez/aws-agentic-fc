@@ -21,7 +21,10 @@ RULES (check in order, do the FIRST that matches):
 4. If opponent has ball AND distBall < 20 → PRESS_BALL intensity 0.9, duration 2
 5. If opponent has ball AND opponent is near our goal (within 30 units) → MARK that opponent, tightness TIGHT, duration 3
 6. If ball is loose AND distBall < 15 → INTERCEPT aggressive=true, duration 2
-7. Otherwise → MOVE_TO position between ball and your goal, y=ball_y*0.5, sprint=false
+7. If opponent has ball AND ball in opponent half → MOVE_TO defensive position x=my_goal*0.5, y=0, sprint=false
+8. Otherwise → MOVE_TO position between ball and your goal, y=ball_y*0.5, sprint=false
+
+STAMINA: NEVER sprint. Use sprint=false on all MOVE_TO. Your job is positioning, not running.
 
 FIELD: x=-55 to +55, y=-35 to +35. HOME defends -x (goal at x=-55), AWAY defends +x (goal at x=55).
 
